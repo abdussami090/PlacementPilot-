@@ -2,3 +2,39 @@ node_modules
 frontend/node_modules
 dist
 .env
+backend/storage/resumes/
+backend/*.db
+backend/*.db-*
+backend/storage/resumes/*
+# Environment files (keep only the safe template)
+.env.*
+!.env.example
+backend/.env.*
+!backend/.env.example
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Python virtual environments
+.venv/
+venv/
+
+# Logs
+*.log
+backend/*.out
+backend/*.err
+
+# Frontend build
+frontend/dist/
+dist/
+
+# Local backups
+/backup/
+
+# Separate nested Git repository
+/PlacementPilot/
+
+# Local SQLite tools
+backend/placementpilot.lock
+backend/placementpilot.sqbpro

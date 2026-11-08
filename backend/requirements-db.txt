@@ -1,0 +1,6 @@
+# Add-ons for PostgreSQL connectivity and schema migrations.
+# FastAPI, SQLAlchemy, and Uvicorn are already part of the existing backend.
+alembic>=1.13,<2
+psycopg[binary]>=3.2,<4
+python-dotenv>=1.0,<2
+boto3>=1.35,<2

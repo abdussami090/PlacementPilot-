@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from app.job import Job
+from app.application import Application
 
-from app.database import SessionLocal
+from app.database import get_db
 from app.models import User
+from app.dependencies import get_current_student
 from app.profile import Profile
 from app.profile_schema import (
     ProfileCreate,
@@ -15,13 +18,6 @@ from app.security import (
 router = APIRouter()
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 @router.post("/profile")
 def create_profile(
@@ -30,11 +26,7 @@ def create_profile(
     db: Session = Depends(get_db)
 ):
 
-    email = verify_token(token)
-
-    user = db.query(User).filter(
-        User.email == email
-    ).first()
+    user = get_current_student(token, db)
 
     if not user:
         raise HTTPException(
@@ -74,11 +66,7 @@ def get_profile(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
-    email = verify_token(token)
-
-    user = db.query(User).filter(
-        User.email == email
-    ).first()
+    user = get_current_student(token, db)
 
     profile = db.query(Profile).filter(
         Profile.user_id == user.id
@@ -98,11 +86,7 @@ def update_profile(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
-    email = verify_token(token)
-
-    user = db.query(User).filter(
-        User.email == email
-    ).first()
+    user = get_current_student(token, db)
 
     profile = db.query(Profile).filter(
         Profile.user_id == user.id
@@ -132,28 +116,63 @@ def dashboard(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
-    email = verify_token(token)
 
-    user = db.query(User).filter(
-        User.email == email
-    ).first()
+    user = get_current_student(token, db)
 
     profile = db.query(Profile).filter(
         Profile.user_id == user.id
     ).first()
 
+    jobs_count = db.query(Job).filter(
+        Job.user_id == user.id
+    ).count()
+
+    applications = db.query(Application).filter(
+        Application.user_id == user.id
+    ).all()
+
+    total_applications = len(applications)
+
+    applied = 0
+    under_review = 0
+    selected = 0
+    rejected = 0
+    withdrawn = 0
+
+    for application in applications:
+
+        if application.status == "Applied":
+            applied += 1
+
+        elif application.status == "Under Review":
+            under_review += 1
+
+        elif application.status == "Selected":
+            selected += 1
+
+        elif application.status == "Rejected":
+            rejected += 1
+
+        elif application.status == "Withdrawn":
+            withdrawn += 1
+
     return {
-        "user": {
-            "id": user.id,
-            "name": user.name,
-            "email": user.email
-        },
+        "user_name": user.name,
+        "email": user.email,
+
         "profile": {
-            "college": profile.college,
-            "branch": profile.branch,
-            "year": profile.year,
-            "linkedin": profile.linkedin,
-            "github": profile.github,
-            "skills": profile.skills
-        }
+            "college": profile.college if profile else None,
+            "branch": profile.branch if profile else None,
+            "year": profile.year if profile else None
+        },
+
+        "total_jobs_created": jobs_count,
+
+        "total_applications": total_applications,
+
+        "applied": applied,
+        "under_review": under_review,
+        "selected": selected,
+        "rejected": rejected,
+        "withdrawn": withdrawn
     }
